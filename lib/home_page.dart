@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:tip_time/provider/tip_time_provider.dart';
 
 class HomePage extends StatefulWidget {
   HomePage({
@@ -10,24 +12,6 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  var _costController = TextEditingController();
-  bool _isRoundedRequested = false; // para redondear propina
-  int? _currentRadio; // indica el radio marcado como seleccionado
-
-  var _radioGroupValues = {
-    // contenido en texto de los radios
-    0: "Amazing 20%",
-    1: "Good 18%",
-    2: "Ok 15%",
-  };
-
-  var _radioGroupAssets = {
-    // TODO: complete el contenido de assets para los radios
-    0: "assets/",
-    1: "assets/",
-    2: "assets/",
-  };
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -41,41 +25,76 @@ class _HomePageState extends State<HomePage> {
             leading: Icon(Icons.room_service),
             title: Padding(
               padding: EdgeInsets.only(right: 24),
-              child: TextField(), // TODO: agrega controller y decoracion
+              child: TextField(
+                keyboardType: TextInputType.number,
+                controller: context.watch<TipTimeProvider>().costController,
+                decoration: InputDecoration(
+                  labelText: "Cost of service:",
+                  hintText: "Enter the amount",
+                  border: OutlineInputBorder(),
+                ),
+              ),
             ),
           ),
           ListTile(
             leading: Icon(Icons.dinner_dining),
             title: Text("How was the service?"),
           ),
-          // TODO: agregar el grupo de radios
-          // TODO: agregar el switch
+          Column(
+            children: radioGroupGenerator(),
+          ),
+          ListTile(
+            leading: Icon(Icons.money),
+            title: Text("Round tip?"),
+            trailing: Switch(
+              value: context.watch<TipTimeProvider>().isRoundedRequested,
+              onChanged: (bool updatedSwitchValue) {
+                context
+                    .read<TipTimeProvider>()
+                    .setIsRoundedSelected(updatedSwitchValue);
+              },
+            ),
+          ),
           MaterialButton(
             child: Text("CALCULATE"),
             onPressed: () {
-              // TODO: llamar a tip calculation
+              var cost = double.tryParse(
+                      Provider.of<TipTimeProvider>(context, listen: false)
+                          .costController
+                          .text) ??
+                  0.0;
+              context.read<TipTimeProvider>().tipCalculation(cost);
             },
           ),
-          Text("Tip amount: \$22"),
+          Padding(
+              padding: EdgeInsets.all(8),
+              child: Text(
+                  "Tip amount: \$${context.watch<TipTimeProvider>().tipAmount.toStringAsFixed(2)}")),
         ],
       ),
     );
   }
 
-  // TODO: crear un grupo de N radios en base a N datos que queramos listar
   List<ListTile> radioGroupGenerator() {
-    return [];
-  }
-
-  void setIsRoundedSelected(bool updatedSwitchValue) {
-    // TODO: actualizar el valor "isRoundedRequested" en base a la seleccion del usuario
-  }
-
-  void setSelectedRadio(int? updatedRadioValue) {
-    // TODO: actualizar el valor "currentRadio" en base a la seleccion del usuario
-  }
-
-  void tipCalculation(double dato) {
-    // TODO: completar metodo para calcular cuanta propina se dejara
+    return context
+        .watch<TipTimeProvider>()
+        .radioGroupValues
+        .entries
+        .map((entry) => ListTile(
+              leading: Image.asset(context
+                  .watch<TipTimeProvider>()
+                  .radioGroupAssets[entry.key]
+                  .toString()),
+              title: Text(entry.value),
+              trailing: Radio(
+                  value: entry.key,
+                  groupValue: context.watch<TipTimeProvider>().currentRadio,
+                  onChanged: (int? selectedRadio) {
+                    context
+                        .read<TipTimeProvider>()
+                        .setSelectedRadio(selectedRadio);
+                  }),
+            ))
+        .toList();
   }
 }
